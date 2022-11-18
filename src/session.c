@@ -193,10 +193,28 @@ int receive_id_str(ssh_session session) {
      * ignored, or MAY be displayed to the client user.
      */
 
+    int ver_start = -1;
+    int ver_end = -1;
+
     /* according to RFC 4253 the max banner length is 255 */
     for (int i = 0; i < 256; ++i) {
         ssh_socket_read(session->socket, &buffer[i], 1);
         // LAB: insert your code here.
+
+        // Silently ignore non-version string.
+        if (ver_start == -1) {
+            if (i >= 3 && strncmp(&buffer[i-3], "SSH-", 4) == 0) {
+                ver_start = i-3;
+            }
+        }
+        else {
+            if (ver_end == -1 && strncmp(&buffer[i-1], "\r\n", 2) == 0) {
+                ver_end = i-1;
+                // TODO: server compatibility mode?
+                session->server_id_str = strndup(&buffer[ver_start], ver_end - ver_start);
+                return SSH_OK;
+            }
+        }
 
     }
     /* this line should not be reached */
@@ -252,10 +270,12 @@ int ssh_connect(ssh_session session) {
         LOG_ERROR("failed to receive server id str");
         goto error;
     }
+    LOG_NOTICE("server identification string: %s", session->server_id_str);
 
     /**
      * 2.2 algorithm negotiation
-     *
+     * See RFC4253 section 7. The process here is simplified
+     * because client supports only one crypto suite.
      */
     rc = ssh_set_client_kex(session);
     if (rc == SSH_ERROR) {
@@ -285,7 +305,7 @@ int ssh_connect(ssh_session session) {
 
     /**
      * 2.3 Diffie-Hellman key exchange
-     *
+     * See RFC4253 section 8.
      */
     rc = ssh_dh_handshake(session);
     if (rc == SSH_ERROR) {
@@ -295,7 +315,7 @@ int ssh_connect(ssh_session session) {
 
     /**
      * 2.4 Send user authentication request
-     *
+     * See RFC4253 section 10.
      */
     rc = ssh_request_auth(session);
     if (rc == SSH_ERROR) {
@@ -303,6 +323,7 @@ int ssh_connect(ssh_session session) {
         goto error;
     }
 
+    LOG_NOTICE("ssh transport layer established");
     return SSH_OK;
 error:
     ssh_socket_close(session->socket);

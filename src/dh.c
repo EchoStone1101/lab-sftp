@@ -597,9 +597,14 @@ static int dh_receive_reply(ssh_session session) {
     }
 
     /* Skip: check server public key */
-    /* Waht should we do next? */
-    // LAB: insert your code here.
 
+    // LAB: insert your code here.
+    /* Compute shared secret and session id */
+    rc = dh_compute_shared_secret(crypto->dh_ctx, DH_CLIENT_KEYPAIR, 
+                            DH_SERVER_KEYPAIR, &crypto->shared_secret);
+    if (rc != SSH_OK) return rc;
+    rc = dh_compute_session_id(session);
+    if (rc != SSH_OK) return rc;
 
     /* Skip: verifies signature on H (session id) */
 
@@ -637,8 +642,11 @@ static int dh_set_new_keys(ssh_session session) {
     /* NEWKEYS received, now its time to activate encryption */
     // LAB: insert your code here.
 
+    session->current_crypto = session->next_crypto;
+    /* activate */
+    session->current_crypto->used = SSH_DIRECTION_BOTH;
 
-    /* next_crypto should be deprecated from now if re-kex is not supportes */
+    /* next_crypto should be deprecated from now if re-kex is not supported */
     session->next_crypto = NULL;
 
     return SSH_OK;

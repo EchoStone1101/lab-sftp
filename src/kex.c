@@ -186,6 +186,14 @@ int ssh_receive_kex(ssh_session session) {
         /* parse name-lists, don't forget to add `in_hashbuf` */
         // LAB: insert your code here.
 
+        str = ssh_buffer_get_ssh_string(session->in_buffer);
+        if (str == NULL) goto error;
+        rc = ssh_buffer_add_ssh_string(session->in_hashbuf, str);
+        if (rc != SSH_OK) goto error;
+
+        strings[i] = strndup(ssh_string_data(str), ssh_string_len(str));
+        /* don't forget to free the temporary ssh_string */
+        ssh_string_free(str); 
     }
 
     rc = ssh_buffer_unpack(session->in_buffer, "bd", &first_kex_follows,
@@ -231,6 +239,30 @@ int ssh_select_kex(ssh_session session) {
         /* select negotiated algorithms and store them in `next_crypto->kex_methods` */
         // LAB: insert your code here.
 
+        /* `client` should contain `supported_methods`; just
+            check if server supports our choice. 
+            Normally it is required to pick and match from both
+            server and client lists. However, our client supports
+            only one suite, hence the process is simplified... */
+        
+        char *client_choice = client->methods[i];
+        char *saveptr;
+        char *server_option;
+
+        // parse comma-separated namelist
+        // `strtok()` modifies `server->methods`, but it is used only here anyways
+        server_option = strtok_r(server->methods[i], ",", &saveptr);
+        while(server_option != NULL) {
+            if (strcmp(client_choice, server_option) == 0) {
+                // pick if server supports
+                session->next_crypto->kex_methods[i] = strdup(client_choice);
+                goto nxt;
+            }
+            server_option = strtok_r(NULL, ",", &saveptr);
+        }
+        // server does not support client
+        goto error;
+nxt:
     }
     session->next_crypto->kex_type = SSH_KEX_DH_GROUP14_SHA256;
     return SSH_OK;

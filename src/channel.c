@@ -117,6 +117,7 @@ static int channel_open(ssh_channel channel, const char *type, uint32_t window,
                 ssh_buffer_unpack(session->in_buffer, "ddBB",
                                 &recipient_channel, &reason_code,
                                 &description, &lang);
+                ssh_buffer_reinit(session->in_buffer);
                 if (recipient_channel != channel->local_channel) {
                     LOG_ERROR("SSH_MSG_CHANNEL_OPEN_FAILURE: channel mismatch");
                     return SSH_ERROR;
@@ -150,6 +151,7 @@ static int channel_open(ssh_channel channel, const char *type, uint32_t window,
                 ssh_buffer_unpack(session->in_buffer, "Sb",
                                 &req, &want);
                 ssh_string_free(req);
+                ssh_buffer_reinit(session->in_buffer);
 
                 if (want) {
                     rc = ssh_buffer_add_u8(session->out_buffer, SSH_MSG_REQUEST_FAILURE);
@@ -533,7 +535,7 @@ int ssh_channel_read(ssh_channel channel, void *dest, uint32_t count) {
             /* try to read channel data from static buffer first */
             // LAB: insert your code here.
             uint32_t reqlen = sz > count ? count : sz;
-            rc = ssh_buffer_get_data(buf, dest, reqlen);
+            rc = ssh_buffer_get_data(buf, dest + nread, reqlen);
             if (rc == 0) {
                 LOG_ERROR("cannot get from buffer");
                 goto error;
@@ -611,6 +613,7 @@ int ssh_channel_read(ssh_channel channel, void *dest, uint32_t count) {
                     ssh_buffer_unpack(session->in_buffer, "Sb",
                                 &req, &want);
                     ssh_string_free(req);
+                    ssh_buffer_reinit(session->in_buffer);
 
                     if (want) {
                         rc = ssh_buffer_add_u8(session->out_buffer, SSH_MSG_REQUEST_FAILURE);
@@ -625,8 +628,6 @@ int ssh_channel_read(ssh_channel channel, void *dest, uint32_t count) {
                             goto error;
                         }
                     }
-
-                    ssh_buffer_reinit(session->in_buffer);
                     break;
 
                 default:

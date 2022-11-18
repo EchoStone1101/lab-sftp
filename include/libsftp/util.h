@@ -14,6 +14,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "libsftp/libssh.h"
 #ifdef LINUX
     #include <arpa/inet.h>
 #endif
@@ -87,5 +88,7 @@ char *ssh_get_local_username(void);
 char *ssh_get_home_dir(void);
 
 void ssh_log_hexdump(const char *descr, const unsigned char *what, size_t len);
+
+void ssh_print_ctrl_filtered_string(ssh_string str);
 
 #endif /* UTIL_H */

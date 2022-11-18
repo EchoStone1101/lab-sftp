@@ -141,14 +141,9 @@ int ssh_userauth_password(ssh_session session, const char *password) {
                 lang_tag = ssh_buffer_get_ssh_string(session->in_buffer);
                 if (msg == NULL || lang_tag == NULL)
                     goto error;
-                len = ssh_string_len(msg);
-                for (int i = 0; i < len; ++i) {
-                    char ch = ((char *)ssh_string_data(msg))[i];
-                    if (ch != '\e')
-                        putchar(ch);
-                    else
-                        printf("^[");
-                }
+                    
+                ssh_print_ctrl_filtered_string(msg);
+
                 ssh_string_free(msg);
                 ssh_string_free(lang_tag);
                 break;

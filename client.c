@@ -195,18 +195,19 @@ int main(int argc, char** argv) {
     }
 
     /* Connection Layer & SFTP Layer */
+    
+    sftp_session sftp = sftp_new(session);
+    if (sftp == NULL) {
+        fprintf(stderr, "%s", ssh_get_error());
+        exit(1);
+    }
+    
+    rc = sftp_init(sftp);
+    if (rc != SSH_OK) {
+        fprintf(stderr, "%s", ssh_get_error());
+        exit(1);
+    }
     while(1);
-    // sftp_session sftp = sftp_new(session);
-    // if (sftp == NULL) {
-    //     fprintf(stderr, "%s", ssh_get_error());
-    //     exit(1);
-    // }
-
-    // rc = sftp_init(sftp);
-    // if (rc != SSH_OK) {
-    //     fprintf(stderr, "%s", ssh_get_error());
-    //     exit(1);
-    // }
 
     // /* File manipulation: interactive shell */
     // while (1) {

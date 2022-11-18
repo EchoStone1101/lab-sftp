@@ -239,3 +239,15 @@ error:
     LOG_WARNING("Could not print to buffer");
     return;
 }
+
+
+void ssh_print_ctrl_filtered_string(ssh_string str) {
+    size_t len = ssh_string_len(str);
+    for (int i = 0; i < len; ++i) {
+        char ch = ((char *)ssh_string_data(str))[i];
+        if (ch != '\e')
+            putchar(ch);
+        else
+            printf("^[");
+    }
+}

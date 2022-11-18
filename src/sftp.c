@@ -195,6 +195,7 @@ int sftp_init(sftp_session sftp) {
         return SSH_ERROR;
     }
 
+    LOG_NOTICE("sftp initialzied");
     return SSH_OK;
 }
 

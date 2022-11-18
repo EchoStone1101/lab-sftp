@@ -220,104 +220,39 @@ int sftp_init(sftp_session sftp)
     return SSH_OK;
 }
 
-uint64_t calc_file_attr_len(uint32_t flags, uint64_t size,
-                            uint32_t uid, uint32_t gid,
-                            uint32_t permissions, uint32_t atime,
-                            uint32_t mtime, uint32_t extended_count,
-                            const char *extended_type,
-                            const char *extended_data)
+int make_attributes(ssh_buffer buffer, uint32_t flags, uint64_t size,
+                    uint32_t uid, uint32_t gid,
+                    uint32_t permissions, uint32_t atime,
+                    uint32_t mtime, uint32_t extended_count,
+                    const char *extended_type,
+                    const char *extended_data)
 {
-    uint64_t len = 0;
-
-    len += 4; /* flags */
-
+    ssh_buffer_add_u32(buffer, flags);
     if (flags & SSH_FILEXFER_ATTR_SIZE)
     {
-        len += 8;
-    }
-
-    if (flags & SSH_FILEXFER_ATTR_UIDGID)
-    {
-        len += 8;
-    }
-
-    if (flags & SSH_FILEXFER_ATTR_PERMISSIONS)
-    {
-        len += 4;
-    }
-
-    if (flags & SSH_FILEXFER_ATTR_ACMODTIME)
-    {
-        len += 8;
-    }
-
-    if (flags & SSH_FILEXFER_ATTR_EXTENDED)
-    {
-        len += 4; /* extended count */
-        len += strlen(extended_type) + 4;
-        len += strlen(extended_data) + 4;
-    }
-
-    return len;
-}
-
-const u_char *make_attributes(uint32_t flags, uint64_t size,
-                              uint32_t uid, uint32_t gid,
-                              uint32_t permissions, uint32_t atime,
-                              uint32_t mtime, uint32_t extended_count,
-                              const char *extended_type,
-                              const char *extended_data)
-{
-    u_char *buffer = malloc(calc_file_attr_len(flags, size, uid, gid,
-                                               permissions, atime, mtime,
-                                               extended_count, extended_type,
-                                               extended_data));
-    if (buffer == NULL)
-    {
-        LOG_ERROR("can not allocate memory");
-        return NULL;
-    }
-
-    uint64_t len = 0;
-    if (flags & SSH_FILEXFER_ATTR_SIZE)
-    {
-        size = htobe64(size);
-        memcpy(buffer + len, &size, 8);
-        len += 8;
+        ssh_buffer_add_u64(buffer, size);
     }
     if (flags & SSH_FILEXFER_ATTR_UIDGID)
     {
-        uid = htobe32(uid);
-        gid = htobe32(gid);
-        memcpy(buffer + len, &uid, 4);
-        memcpy(buffer + len + 4, &gid, 4);
-        len += 8;
+        ssh_buffer_add_u32(buffer, uid);
+        ssh_buffer_add_u32(buffer, gid);
     }
     if (flags & SSH_FILEXFER_ATTR_PERMISSIONS)
     {
-        permissions = htobe32(permissions);
-        memcpy(buffer + len, &permissions, 4);
-        len += 4;
+        ssh_buffer_add_u32(buffer, permissions);
     }
     if (flags & SSH_FILEXFER_ATTR_ACMODTIME)
     {
-        atime = htobe32(atime);
-        mtime = htobe32(mtime);
-        memcpy(buffer + len, &atime, 4);
-        memcpy(buffer + len + 4, &mtime, 4);
-        len += 8;
+        ssh_buffer_add_u32(buffer, atime);
+        ssh_buffer_add_u32(buffer, mtime);
     }
     if (flags & SSH_FILEXFER_ATTR_EXTENDED)
     {
-        extended_count = htobe32(extended_count);
-        memcpy(buffer + len, &extended_count, 4);
-        len += 4;
-        memcpy(buffer + len, extended_type, strlen(extended_type));
-        len += strlen(extended_type);
-        memcpy(buffer + len, extended_data, strlen(extended_data));
-        len += strlen(extended_data);
+        ssh_buffer_add_u32(buffer, extended_count);
+        ssh_buffer_add_data(buffer, extended_type, strlen(extended_type));
+        ssh_buffer_add_data(buffer, extended_data, strlen(extended_data));
     }
-    return buffer;
+    return 0;
 }
 
 sftp_file sftp_open(sftp_session sftp, const char *filename, int flags,
@@ -371,12 +306,9 @@ sftp_file sftp_open(sftp_session sftp, const char *filename, int flags,
 
     /* pack a new SFTP packet and send it using `sftp_packet_write` */
     // LAB: insert your code here.
-    uint64_t len = calc_file_attr_len(attr_flags, 0, 0, 0, mode, 0, 0, 0, NULL,
-                                      NULL);
-    const u_char *attr = make_attributes(attr_flags, 0, 0, 0, mode, 0, 0, 0,
-                                         NULL, NULL);
+
     ssh_string filename_str = ssh_string_from_char(filename);
-    if ((rc = ssh_buffer_pack(buffer, "dSdd", id, filename_str, perm_flags, *attr)) != SSH_OK)
+    if ((rc = ssh_buffer_pack(buffer, "dSd", id, filename_str, perm_flags)) != SSH_OK)
     // if ((rc = ssh_buffer_pack(buffer, "dSdd", id, filename_str, perm_flags, attr_flags & mode)) != SSH_OK)
     {
         LOG_CRITICAL("can not pack buffer");
@@ -384,6 +316,8 @@ sftp_file sftp_open(sftp_session sftp, const char *filename, int flags,
         ssh_buffer_free(buffer);
         return NULL;
     }
+    int ret = make_attributes(buffer, attr_flags, 0, 0, 0, mode, 0, 0, 0,
+                              NULL, NULL);
     if ((rc = sftp_packet_write(sftp, SSH_FXP_OPEN, buffer)) < 0)
     {
         LOG_CRITICAL("can not send open request");
@@ -405,7 +339,8 @@ sftp_file sftp_open(sftp_session sftp, const char *filename, int flags,
     switch (response->type)
     {
     case SSH_FXP_STATUS:
-        LOG_CRITICAL("received status packet");
+        status = sftp_parse_status(response);
+        LOG_CRITICAL("received status packet, error code: %d", status->status);
         ssh_set_error(SSH_FATAL, "received status packet");
 
         // LAB: insert your code here.
@@ -578,8 +513,35 @@ int32_t sftp_read(sftp_file file, void *buf, uint32_t count)
         ssh_string_free(data);
         return recvlen;
     case SSH_FXP_STATUS:
-        LOG_CRITICAL("received status packet");
-        ssh_set_error(SSH_FATAL, "received status packet");
+        status = sftp_parse_status(response);
+
+        // LOG_CRITICAL("received status packet, status code %d", status->status);
+        switch (status->status)
+        {
+        case SSH_FX_OK:
+            LOG_INFO("received status packet, status code %d", status->status);
+            return 0;
+            break;
+        case SSH_FX_EOF:
+            LOG_INFO("received status packet, status code %d", status->status);
+            file->eof = 1;
+            return 0;
+            break;
+        case SSH_FX_NO_SUCH_FILE:
+            LOG_WARNING("no such file");
+            // ssh_set_error(SSH_FATAL, "no such file");
+            return SSH_ERROR;
+            break;
+        case SSH_FX_PERMISSION_DENIED:
+            LOG_WARNING("permission denied");
+            // ssh_set_error(SSH_FATAL, "permission denied");
+            return SSH_ERROR;
+            break;
+
+        default:
+            break;
+        }
+        // ssh_set_error(SSH_FATAL, "received status packet");
         break;
     default:
         LOG_CRITICAL("received unexpected packet");
@@ -618,10 +580,13 @@ int32_t sftp_write(sftp_file file, const void *buf, uint32_t count)
         id = sftp_get_new_id(sftp);
 
         nwrite = MIN(nleft, SSH_FXP_MAXLEN);
-        data = ssh_string_from_char(buf + count - nleft);
+        // data = ssh_string_from_char(buf + count - nleft);
 
-        rc = ssh_buffer_pack(buffer, "dSqdP", id, file->handle, file->offset,
-                             nwrite, (char *)buf + (count - nleft));
+        rc = ssh_buffer_pack(buffer, "dSq", id, file->handle, file->offset);
+        // rc = ssh_buffer_pack(buffer, "dSq", id, file->handle, file->offset);
+        ssh_string data = ssh_string_new(nwrite);
+        int ret = ssh_string_fill(data, buf + count - nleft, nwrite);
+        ssh_buffer_add_ssh_string(buffer, data);
         if (rc != SSH_OK)
         {
             LOG_CRITICAL("can not pack buffer");
@@ -645,8 +610,11 @@ int32_t sftp_write(sftp_file file, const void *buf, uint32_t count)
         {
         case SSH_FXP_STATUS:
             LOG_INFO("received status packet");
-            nleft -= nsend;
-            file->offset += nsend;
+            // nleft -= nsend;
+            // file->offset += nsend;
+            nleft -= nwrite;
+            file->offset += nwrite;
+            LOG_INFO("NLEFT: %d", nleft);
             break;
         default:
             LOG_CRITICAL("received unexpected packet");
@@ -693,7 +661,6 @@ sftp_packet sftp_packet_read(sftp_session sftp)
     /* read packet length and type */
     nread = ssh_channel_read(sftp->channel, buffer,
                              sizeof(uint32_t) + sizeof(uint8_t));
-    printf("nread = %d\n", nread);
     if (nread != sizeof(uint32_t) + sizeof(uint8_t) && nread != SSH_EOF)
     {
         LOG_ERROR("can not read packet length and type");

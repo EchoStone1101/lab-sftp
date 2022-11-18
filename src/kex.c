@@ -246,8 +246,8 @@ int ssh_select_kex(ssh_session session) {
             only one suite, hence the process is simplified... */
         
         char *client_choice = client->methods[i];
-        char *saveptr;
-        char *server_option;
+        char *saveptr = NULL;
+        char *server_option = NULL;
 
         // parse comma-separated namelist
         // `strtok()` modifies `server->methods`, but it is used only here anyways
@@ -260,9 +260,15 @@ int ssh_select_kex(ssh_session session) {
             }
             server_option = strtok_r(NULL, ",", &saveptr);
         }
+        if (client_choice[0] == '\0') {
+            // language might be empty
+            goto nxt;
+        }
+
         // server does not support client
         goto error;
 nxt:
+        continue;
     }
     session->next_crypto->kex_type = SSH_KEX_DH_GROUP14_SHA256;
     return SSH_OK;

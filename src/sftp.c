@@ -249,12 +249,15 @@ sftp_file sftp_open(sftp_session sftp, const char *filename, int flags,
     switch (response->type) {
         case SSH_FXP_STATUS:
             // LAB: insert your code here.
+            break;
 
         case SSH_FXP_HANDLE:
             // LAB: insert your code here.
+            break;
 
         default:
             // LAB: insert your code here.
+            break;
 
     }
     return NULL;

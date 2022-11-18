@@ -5,9 +5,9 @@
  * motivated by https://github.com/jnguyen1098/seethe/blob/master/seethe.h
  * @version 0.1
  * @date 2022-10-05
- * 
+ *
  * @copyright Copyright (c) 2022
- * 
+ *
  */
 
 #ifndef LOGGER_H
@@ -19,7 +19,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #ifdef LINUX
-    #include <time.h>
+#include <time.h>
 #endif
 
 /* Default level */
@@ -61,7 +61,8 @@
 
 /* Log to screen */
 #define emit_log(colour, level, file, func, line, ...)                       \
-    do {                                                                     \
+    do                                                                       \
+    {                                                                        \
         /* notate the time */                                                \
         struct timeval tv;                                                   \
         gettimeofday(&tv, NULL);                                             \
@@ -69,25 +70,25 @@
         char time_buffer[80];                                                \
         char time_sec[80];                                                   \
         strftime(time_sec, 80, TIME_FORMAT, localtime(&t));                  \
-        sprintf(time_buffer, "%s:%ld", time_sec, tv.tv_usec);                 \
+        sprintf(time_buffer, "%s:%ld", time_sec, tv.tv_usec);                \
                                                                              \
         /* enable colour */                                                  \
-        fprintf(stderr, "%s", DISPLAY_COLOUR ? colour : "");          \
+        fprintf(stderr, "%s", DISPLAY_COLOUR ? colour : "");                 \
                                                                              \
         /* display the time */                                               \
-        fprintf(stderr, "%s%s", DISPLAY_TIME ? time_buffer : "",      \
+        fprintf(stderr, "%s%s", DISPLAY_TIME ? time_buffer : "",             \
                 DISPLAY_TIME ? " " : "");                                    \
                                                                              \
         /* display the level */                                              \
-        fprintf(stderr, "%10s%s", DISPLAY_LEVEL ? level : "",         \
+        fprintf(stderr, "%10s%s", DISPLAY_LEVEL ? level : "",                \
                 DISPLAY_LEVEL ? " " : "");                                   \
                                                                              \
         /* display the function doing the logging */                         \
-        fprintf(stderr, "%s%s", DISPLAY_FUNC ? func : "",             \
+        fprintf(stderr, "%s%s", DISPLAY_FUNC ? func : "",                    \
                 DISPLAY_FUNC ? " " : "");                                    \
                                                                              \
         /* display the file and/or the line number */                        \
-        fprintf(stderr, "%s%s%s%.d%s%s",                              \
+        fprintf(stderr, "%s%s%s%.d%s%s",                                     \
                 DISPLAY_FUNC && (DISPLAY_FILE || DISPLAY_LINE) ? "(" : "",   \
                 DISPLAY_FILE ? __FILENAME__ : "",                            \
                 DISPLAY_FILE && DISPLAY_LINE ? ":" : "",                     \
@@ -96,17 +97,18 @@
                 !DISPLAY_FUNC && (DISPLAY_FILE || DISPLAY_LINE) ? " " : ""); \
                                                                              \
         /* display message border */                                         \
-        fprintf(stderr, "%s%s", DISPLAY_BORDER ? BORDER : "",         \
+        fprintf(stderr, "%s%s", DISPLAY_BORDER ? BORDER : "",                \
                 DISPLAY_BORDER ? " " : "");                                  \
                                                                              \
         /* display the callee's message */                                   \
-        if (DISPLAY_MESSAGE) fprintf(stderr, __VA_ARGS__);            \
+        if (DISPLAY_MESSAGE)                                                 \
+            fprintf(stderr, __VA_ARGS__);                                    \
                                                                              \
         /* add the message ending (usually '\n') */                          \
-        fprintf(stderr, "%s", DISPLAY_ENDING ? MSG_ENDING : "");      \
+        fprintf(stderr, "%s", DISPLAY_ENDING ? MSG_ENDING : "");             \
                                                                              \
         /* reset the colour */                                               \
-        fprintf(stderr, "%s", DISPLAY_RESET ? RESET_COLOUR : "");     \
+        fprintf(stderr, "%s", DISPLAY_RESET ? RESET_COLOUR : "");            \
                                                                              \
     } while (0)
 
@@ -121,8 +123,10 @@
 
 /* DEBUG LOG */
 #define LOG_DEBUG(...)                                                      \
-    do {                                                                    \
-        if (LOG_LEVEL == DEBUG) {                                           \
+    do                                                                      \
+    {                                                                       \
+        if (LOG_LEVEL == DEBUG)                                             \
+        {                                                                   \
             emit_log(DEBUG_COLOUR, "[DEBUG]", __FILE__, __func__, __LINE__, \
                      __VA_ARGS__);                                          \
         }                                                                   \
@@ -130,8 +134,10 @@
 
 /* INFO LOG */
 #define LOG_INFO(...)                                                     \
-    do {                                                                  \
-        if (LOG_LEVEL <= INFO) {                                          \
+    do                                                                    \
+    {                                                                     \
+        if (LOG_LEVEL <= INFO)                                            \
+        {                                                                 \
             emit_log(INFO_COLOUR, "[INFO]", __FILE__, __func__, __LINE__, \
                      __VA_ARGS__);                                        \
         }                                                                 \
@@ -139,8 +145,10 @@
 
 /* NOTICE LOG */
 #define LOG_NOTICE(...)                                                       \
-    do {                                                                      \
-        if (LOG_LEVEL <= NOTICE) {                                            \
+    do                                                                        \
+    {                                                                         \
+        if (LOG_LEVEL <= NOTICE)                                              \
+        {                                                                     \
             emit_log(NOTICE_COLOUR, "[NOTICE]", __FILE__, __func__, __LINE__, \
                      __VA_ARGS__);                                            \
         }                                                                     \
@@ -148,8 +156,10 @@
 
 /* WARNING LOG */
 #define LOG_WARNING(...)                                              \
-    do {                                                              \
-        if (LOG_LEVEL <= WARNING) {                                   \
+    do                                                                \
+    {                                                                 \
+        if (LOG_LEVEL <= WARNING)                                     \
+        {                                                             \
             emit_log(WARNING_COLOUR, "[WARNING]", __FILE__, __func__, \
                      __LINE__, __VA_ARGS__);                          \
         }                                                             \
@@ -157,8 +167,10 @@
 
 /* ERROR LOG */
 #define LOG_ERROR(...)                                                      \
-    do {                                                                    \
-        if (LOG_LEVEL <= ERROR) {                                           \
+    do                                                                      \
+    {                                                                       \
+        if (LOG_LEVEL <= ERROR)                                             \
+        {                                                                   \
             emit_log(ERROR_COLOUR, "[ERROR]", __FILE__, __func__, __LINE__, \
                      __VA_ARGS__);                                          \
         }                                                                   \
@@ -166,8 +178,10 @@
 
 /* CRITICAL LOG */
 #define LOG_CRITICAL(...)                                               \
-    do {                                                                \
-        if (LOG_LEVEL <= CRITICAL) {                                    \
+    do                                                                  \
+    {                                                                   \
+        if (LOG_LEVEL <= CRITICAL)                                      \
+        {                                                               \
             emit_log(CRITICAL_COLOUR, "[CRITICAL]", __FILE__, __func__, \
                      __LINE__, __VA_ARGS__);                            \
             exit(EXIT_FAILURE);                                         \

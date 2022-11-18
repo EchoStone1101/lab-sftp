@@ -1,6 +1,0 @@
-/root/lab-sftp/CMakeFiles/rebuild_cache.dir
-/root/lab-sftp/CMakeFiles/edit_cache.dir
-/root/lab-sftp/CMakeFiles/client.dir
-/root/lab-sftp/src/CMakeFiles/rebuild_cache.dir
-/root/lab-sftp/src/CMakeFiles/edit_cache.dir
-/root/lab-sftp/src/CMakeFiles/sftp.dir

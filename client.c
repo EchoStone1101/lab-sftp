@@ -223,57 +223,58 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Connection Layer & SFTP Layer */
+    /*Connection Layer & SFTP Layer */
+
+    sftp_session sftp = sftp_new(session);
+    if (sftp == NULL)
+    {
+        fprintf(stderr, "%s", ssh_get_error());
+        exit(1);
+    }
+
+    rc = sftp_init(sftp);
+    if (rc != SSH_OK)
+    {
+        fprintf(stderr, "%s", ssh_get_error());
+        exit(1);
+    }
+
+    /*File manipulation: interactive shell */
     while (1)
-        ;
-    // sftp_session sftp = sftp_new(session);
-    // if (sftp == NULL) {
-    //     fprintf(stderr, "%s", ssh_get_error());
-    //     exit(1);
-    // }
+    {
+        prompt();
+        fscanf(stdin, "%10s", cmd);
+        if (strcmp(cmd, "get") == 0)
+        {
+            if (get_file(sftp) != 0)
+            {
+                fprintf(stderr, "%s", ssh_get_error());
+                break;
+            }
+        }
+        else if (strcmp(cmd, "put") == 0)
+        {
+            if (put_file(sftp) != 0)
+            {
+                fprintf(stderr, "%s", ssh_get_error());
+                break;
+            }
+        }
+        else if (strcmp(cmd, "bye") == 0)
+        {
+            fprintf(stdout, "%s", "Disconnect\n");
+            break;
+        }
+        else
+        {
+            fprintf(stderr,
+                    "Unsupported command: %s. Only supports 'get' and 'put'\n",
+                    cmd);
+        }
+    }
 
-    // rc = sftp_init(sftp);
-    // if (rc != SSH_OK) {
-    //     fprintf(stderr, "%s", ssh_get_error());
-    //     exit(1);
-    // }
-
-    /* File manipulation: interactive shell */
-    // while (1)
-    // {
-    //     prompt();
-    //     fscanf(stdin, "%10s", cmd);
-    //     if (strcmp(cmd, "get") == 0)
-    //     {
-    //         if (get_file(sftp) != 0)
-    //         {
-    //             fprintf(stderr, "%s", ssh_get_error());
-    //             break;
-    //         }
-    //     }
-    //     else if (strcmp(cmd, "put") == 0)
-    //     {
-    //         if (put_file(sftp) != 0)
-    //         {
-    //             fprintf(stderr, "%s", ssh_get_error());
-    //             break;
-    //         }
-    //     }
-    //     else if (strcmp(cmd, "bye") == 0)
-    //     {
-    //         fprintf(stdout, "%s", "Disconnect\n");
-    //         break;
-    //     }
-    //     else
-    //     {
-    //         fprintf(stderr,
-    //                 "Unsupported command: %s. Only supports 'get' and 'put'\n",
-    //                 cmd);
-    //     }
-    // }
-
-    // sftp_free(sftp);
-    // ssh_free(session);
+    sftp_free(sftp);
+    ssh_free(session);
 
     return 0;
 }
